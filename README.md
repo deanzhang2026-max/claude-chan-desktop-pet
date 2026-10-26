@@ -87,6 +87,8 @@ art/            定稿立绘
 ## 致谢
 
 - 角色原型：B 站 UP 主 ZipZipPipe
+- 贡献者：[@Lumidarin](https://github.com/Lumidarin)：修复了右键菜单在 Windows 上弹不出来的问题，
+  新增调整大小、固定位置、置顶勾选，并能记住窗口位置和设置（[#1](https://github.com/deanzhang2026-max/claude-chan-desktop-pet/pull/1)）
 - 立绘：以 Animagine XL 4.0 生成并本地重绘、修整
 - 自动拆层：[See-through](https://github.com/shitagaki-lab/see-through)（Apache-2.0）
 - 2.5D 自动绑定与渲染：[Anime2.5DRig](https://github.com/852wa/Anime2.5DRig)（MIT，随附于 `web/rig/`，许可证见其目录）
