@@ -1,6 +1,6 @@
 {
   "name": "claude-desktop-pet",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Transparent always-on-top Live2D pet window driven by Claude Code hooks (fan-made, unofficial)",
   "main": "main.js"
