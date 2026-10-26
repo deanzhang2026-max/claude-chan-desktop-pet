@@ -22,7 +22,7 @@ Claude Code 读文件、写代码、跑命令、联网搜索的时候，她会�
 1. 到 [Releases](../../releases/latest) 下载 `ClaudeChan-DesktopPet-*-win64.zip`，解压到任意文件夹（路径里有中文也可以）。
    压缩包里已经带了 Electron 运行时，不用另外安装。
 2. 双击 **`启动桌宠.bat`**，桌宠会出现在屏幕右上角。
-   - 拖动可以移动她；右键菜单可以取消置顶、重新载入、关闭。
+   - 拖动可以移动她；右键菜单可以切换置顶、固定位置（锁住后不能拖动）、调整大小（6 档；位置和这些设置下次启动沿用）、重新载入、关闭。
 3. 和 Claude Code 联动：先装 [Node.js](https://nodejs.org/)（Claude Code 的 hook 用它运行），再双击 **`安装联动.bat`**。
    之后**新开**的 Claude Code 会话就会驱动桌宠。
    - 脚本会先备份 `%USERPROFILE%\.claude\settings.json`，其他设置原样保留；重复运行不会装两份。

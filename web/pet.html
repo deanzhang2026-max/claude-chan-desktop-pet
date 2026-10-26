@@ -10,13 +10,18 @@
     background: transparent; overflow: hidden;
     font-family: "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
     -webkit-user-select: none; user-select: none;
-    -webkit-app-region: drag;
   }
   #wrap { position: relative; width: 100%; height: 100%; }
 
+  /* 窗口缩小（zoom < 1）时，气泡、换装条、提示保持标准大小：
+     --z = min(zoom, 1)，--k = 1/--z，由 setUiScale() 设置。用 scale(--k) 把被页面缩放缩小的部分放回去，
+     可用宽度（--z × 100%）也要跟着算，免得超出窗口。放大（zoom > 1）时仍然跟着一起放大。 */
+  :root { --z: 1; --k: 1; }
+
   #bubble {
-    position: absolute; left: 50%; top: 8px; transform: translateX(-50%);
-    min-width: 170px; max-width: calc(100% - 16px); box-sizing: border-box;
+    position: absolute; left: 50%; top: calc(8px * var(--k)); transform: translateX(-50%) scale(var(--k));
+    transform-origin: 50% 0;
+    min-width: 170px; max-width: calc(100% * var(--z) - 16px); box-sizing: border-box;
     padding: 10px 14px 10px; border-radius: 16px;
     background: rgba(255,250,246,0.96);
     border: 1px solid rgba(240,220,208,0.95);
@@ -41,7 +46,7 @@
 
   /* ---- clickable doodles drawn on the desk ---- */
   .hot {
-    position: absolute; -webkit-app-region: no-drag; cursor: pointer;
+    position: absolute; cursor: pointer;
     border-radius: 50%; transition: background .15s, box-shadow .15s;
   }
   .hot:hover { background: rgba(217,119,87,0.22); box-shadow: 0 0 0 2px rgba(217,119,87,0.45); }
@@ -50,15 +55,16 @@
 
   /* ---- hover dress-up bar (appears under the bubble) ---- */
   #bar {
-    position: absolute; left: 50%; transform: translateX(-50%);
+    position: absolute; left: 50%; transform: translateX(-50%) scale(var(--k));
+    transform-origin: 50% 0;
     display: flex; flex-wrap: wrap; justify-content: center; gap: 5px;
-    max-width: calc(100% - 12px);
+    max-width: calc(100% * var(--z) - 12px);
     opacity: 0; pointer-events: none; transition: opacity .18s ease;
     z-index: 5;
   }
   #bar.show { opacity: 1; pointer-events: auto; }
   .pill {
-    -webkit-app-region: no-drag; cursor: pointer;
+    cursor: pointer;
     font-size: 11px; line-height: 1; padding: 5px 9px; border-radius: 11px;
     background: rgba(255,250,246,0.96); color: #33415C;
     border: 1px solid rgba(240,220,208,0.95);
@@ -69,7 +75,8 @@
   .pill.on { background: #D97757; color: #fff; border-color: #D97757; }
 
   #hint {
-    position: absolute; left: 0; right: 0; bottom: 4px; text-align: center;
+    position: absolute; left: 0; width: calc(100% * var(--z)); bottom: calc(4px * var(--k)); text-align: center;
+    transform: scale(var(--k)); transform-origin: 0 100%;
     font-size: 11px; color: #5B6478; opacity: 0; transition: opacity .3s;
     text-shadow: 0 1px 3px rgba(255,255,255,0.95), 0 0 6px rgba(255,255,255,0.9);
     pointer-events: none;
@@ -78,7 +85,7 @@
 
   /* ---- startup splash ---- */
   #boot {
-    position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%) scale(var(--k));
     font-size: 12px; color: #55607A; background: rgba(255,250,246,0.92);
     padding: 8px 14px; border-radius: 12px; border: 1px solid rgba(240,220,208,0.95);
   }
@@ -381,9 +388,20 @@
   function placeBar() {
     if (!barEnabled) return;
     // sit just under the speech bubble, re-measured whenever the text changes
-    var r = bubbleEl.getBoundingClientRect();
-    barEl.style.top = Math.round(r.bottom + 14) + 'px';
+    var r = bubbleEl.getBoundingClientRect();   // 含 scale(--k)，是气泡实际占的位置
+    barEl.style.top = Math.round(r.bottom + 14 * uiK) + 'px';
   }
+
+  // 主进程改窗口大小后调用：zoom < 1 时让气泡等保持标准大小
+  var uiK = 1;
+  window.setUiScale = function (zoom) {
+    var z = (typeof zoom === 'number' && isFinite(zoom) && zoom > 0) ? Math.min(zoom, 1) : 1;
+    uiK = 1 / z;
+    var st = document.documentElement.style;
+    st.setProperty('--z', String(z));
+    st.setProperty('--k', String(uiK));
+    placeBar();
+  };
 
   // ---- motion scheduler -------------------------------------------
   // Drives a state's action pool so the pet has a RHYTHM instead of one clip on
@@ -564,9 +582,10 @@
   document.addEventListener('mousemove', function (ev) {
     if (!model || !barEnabled) return;
     var r = bubbleEl.getBoundingClientRect();
-    var pad = 34;
+    var pad = 34 * uiK;
+    var br = barEl.getBoundingClientRect();   // 含 scale(--k)
     var overBar = barEl.classList.contains('show') &&
-      ev.clientY > barEl.offsetTop - 6 && ev.clientY < barEl.offsetTop + barEl.offsetHeight + 6;
+      ev.clientY > br.top - 6 && ev.clientY < br.bottom + 6;
     var near = ev.clientY > r.top - pad && ev.clientY < r.bottom + pad + 26;
     barEl.classList.toggle('show', near || overBar);
   });
@@ -782,6 +801,33 @@
       if (bootEl) bootEl.textContent = 'Live2D 加载失败：' + err;
       window.updateState(TITLE, 'Live2D 加载失败：' + err, 'error', 0);
     });
+})();
+</script>
+<script>
+// 拖动窗口：按在 .hot / .pill（可点的涂鸦和换装按钮）以外的地方，左键拖动。
+// 不用 -webkit-app-region: drag，它在 Windows 上会吞掉右键，Electron 收不到 context-menu。
+(function () {
+  'use strict';
+  var host = window.petHost;
+  if (!host || !host.dragStart) return;
+  var dragging = false;
+
+  function end() {
+    if (!dragging) return;
+    dragging = false;
+    host.dragEnd();
+  }
+
+  document.addEventListener('pointerdown', function (ev) {
+    if (ev.button !== 0 || (ev.target.closest && ev.target.closest('.hot, .pill'))) return;
+    dragging = true;
+    document.documentElement.setPointerCapture(ev.pointerId);   // 光标冲出窗口也能收到 pointerup
+    host.dragStart();
+  });
+  document.addEventListener('pointerup', end);
+  document.addEventListener('pointercancel', end);
+  document.addEventListener('lostpointercapture', end);
+  window.addEventListener('blur', end);
 })();
 </script>
 </body>
